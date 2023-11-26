@@ -1,0 +1,122 @@
+/********************************************************************************************/
+/********************************************************************************************/
+/**************************		Author:  Ahmed Mohamed Mohamed Hassanien        *************/
+/**************************		Layer:   MCAL								   	*************/
+/**************************		SWC:	 GPIO									*************/
+/**************************		Version: 1.00 	             					*************/
+/********************************************************************************************/
+/********************************************************************************************/
+
+#include <stdint.h>
+
+#include "LIB/BIT_MATH.h"
+#include "LIB/Error_type.h"
+#include "LIB/stm32f103xx.h"
+
+#include "MCAL/GPIO/GPIO_interface.h"
+#include "MCAL/GPIO/GPIO_private.h"
+#include "MCAL/GPIO/GPIO_config.h"
+
+/*******************************************************************************
+*                      Private Variables	                                   *
+*******************************************************************************/
+static GPIO_RegDef_t * GPIO_Astr[5] = {GPIOA,GPIOB,GPIOC,GPIOD,GPIOE};
+
+/*******************************************************************************
+*                      Functions Definitions                                   *
+*******************************************************************************/
+
+/*******************************************************************************
+* Function Name:		GPIO_u8SetPinMode
+********************************************************************************/
+uint8_t GPIO_u8SetPinMode	(uint8_t Copy_PortId, uint8_t Copy_PinId, uint8_t Copy_PinMode)
+{
+	uint8_t Local_u8ErrorState = OK;
+
+	if(Copy_PortId <= GPIO_u8_GPIOE)
+	{
+		uint8_t Local_PullUpDown_Flag = GET_BIT(Copy_PinMode,4); /* Equal one in case of pull up only */
+		CLR_BIT(Copy_PinMode,4); /*Get the Mode back to its value if it was input pull up */
+
+		if(Copy_PinId <= GPIO_u8_PIN7)
+		{
+			GPIO_Astr[Copy_PortId]->CRL &= (~((0b1111) << (Copy_PinId * 4)));
+			GPIO_Astr[Copy_PortId]->CRL |= (Copy_PinMode << (Copy_PinId * 4));
+
+			if((Copy_PinMode == GPIO_u8_INPUT_PULL_DOWN) && (Local_PullUpDown_Flag == 0))
+			{
+				/* Then the mode was input pull down */
+				/* Turn off the internal pull up resistor */
+				CLR_BIT(GPIO_Astr[Copy_PortId]->ODR,Copy_PinId);
+			}
+			else if((Copy_PinMode == GPIO_u8_INPUT_PULL_DOWN) && (Local_PullUpDown_Flag == 1))
+			{
+				/* Then the mode was input pull up */
+				/* Turn on the internal pull up resistor */
+				SET_BIT(GPIO_Astr[Copy_PortId]->ODR,Copy_PinId);
+			}
+		}
+		else if(Copy_PinId <= GPIO_u8_PIN15)
+		{
+			Copy_PinId -= 8;
+			GPIO_Astr[Copy_PortId]->CRH &= (~((0b1111) << (Copy_PinId * 4)));
+			GPIO_Astr[Copy_PortId]->CRH |= (Copy_PinMode << (Copy_PinId * 4));
+
+			if((Copy_PinMode == GPIO_u8_INPUT_PULL_DOWN) && (Local_PullUpDown_Flag == 0))
+			{
+				/* Then the mode was input pull down */
+				/* Turn off the internal pull up resistor */
+				CLR_BIT(GPIO_Astr[Copy_PortId]->ODR,Copy_PinId);
+			}
+			else if((Copy_PinMode == GPIO_u8_INPUT_PULL_DOWN) && (Local_PullUpDown_Flag == 1))
+			{
+				/* Then the mode was input pull up */
+				/* Turn on the internal pull up resistor */
+				SET_BIT(GPIO_Astr[Copy_PortId]->ODR,Copy_PinId);
+			}
+		}
+		else
+		{
+			Local_u8ErrorState = NOK;
+		}
+	}
+	else
+	{
+		Local_u8ErrorState = NOK;
+	}
+
+	return Local_u8ErrorState;
+}
+
+/*******************************************************************************
+* Function Name:		GPIO_u8SetPinMode
+********************************************************************************/
+uint8_t GPIO_u8WritePinValue	(uint8_t Copy_PortId, uint8_t Copy_PinId, uint8_t Copy_u8PinValue)
+{
+	uint8_t Local_u8ErrorState = OK;
+
+	if(Copy_PortId <= GPIO_u8_GPIOE && Copy_PinId <= GPIO_u8_PIN15)
+	{
+		switch(Copy_u8PinValue)
+		{
+		case GPIO_u8_HIGH:
+			GPIO_Astr[Copy_PortId]->BSRR = (1<<Copy_PinId);
+			break;
+		case GPIO_u8_LOW:
+			GPIO_Astr[Copy_PortId]->BRR = (1<<Copy_PinId);
+			break;
+		default:
+			Local_u8ErrorState = NOK;
+		}
+	}
+	else
+	{
+		Local_u8ErrorState = NOK;
+	}
+
+	return Local_u8ErrorState;
+}
+
+
+
+
